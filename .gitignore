@@ -1,0 +1,8 @@
+cat <<EOF > .gitignore
+datasets/*/images/
+*.pth
+*.cache
+runs/
+.venv/
+.git/
+EOF

@@ -1,0 +1,6 @@
+{
+    "python.analysis.extraPaths": [
+        "./skysense/SkySense",
+        "./ultralytics"
+    ]
+}
