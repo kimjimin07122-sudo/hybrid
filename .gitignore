@@ -5,4 +5,11 @@ datasets/*/images/
 runs/
 .venv/
 .git/
+datasets/
+weight/8.pth
+runs/
+__pycache__/
+8.pt
 EOF
+
+
