@@ -340,5 +340,8 @@ def split_test(
 
 
 if __name__ == "__main__":
-    split_trainval(data_root="DOTAv2", save_dir="DOTAv2-split")
-    split_test(data_root="DOTAv2", save_dir="DOTAv2-split")
+    # 사용자님의 실제 경로로 수술합니다. r"" 문법을 써서 경로 깨짐을 방지하세요.
+    split_trainval(
+        data_root=r"C:/yolov26_research/datasets/DOTAv1", 
+        save_dir=r"C:/hybrid/datasets/DOTAv1_Tiled_1024"
+    )

@@ -1,15 +1,8 @@
-cat <<EOF > .gitignore
-datasets/*/images/
-*.pth
-*.cache
-runs/
-.venv/
-.git/
 datasets/
-weight/8.pth
 runs/
+*.pth
+*.pt
 __pycache__/
-8.pt
-EOF
-
-
+.ipynb_checkpoints/
+*.zip
+*.tar.gz

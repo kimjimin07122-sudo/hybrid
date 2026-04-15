@@ -1,47 +1,50 @@
-import sys
 import os
 import torch
-from ultralytics import YOLO
+from ultralytics.models.yolo.obb import OBBTrainer
 from model_fusion import SkySense_Backbone_with_Lateral
 
+# 1. Ultralytics의 OBB 트레이너를 상속받아 나만의 트레이너를 만듭니다.
+class HybridTrainer(OBBTrainer):
+    # 트레이너가 학습 직전 모델을 생성하는 핵심 엔진을 가로챕니다.
+    def get_model(self, cfg=None, weights=None, verbose=True):
+        # 부모 클래스의 기능을 호출하여 정상적인 YOLO 모델을 일단 만듭니다.
+        model = super().get_model(cfg, weights, verbose)
+        
+        # 여기서 모델이 반환되기 직전에 낚아채서 백본을 교체합니다.
+        print("\n🛠️ [심층 수술] 모델 빌드 과정에 침투하여 SkySense를 이식합니다...")
+        weights_path = r"C:/hybrid/weights/skysense_model_backbone_hr.pth"
+        hybrid_backbone = SkySense_Backbone_with_Lateral(weights_path=weights_path)
+        
+        # OBBModel 내부에 강제 이식
+        model.backbone = hybrid_backbone
+        print("🔥 이식 완료! Optimizer가 이 거대한 파라미터를 정상적으로 인식할 것입니다.\n")
+        
+        return model
+
 def train_surgery():
-    print("🚀 [수술실] YOLOv26 + SkySense HR 하이브리드 조립 시작...")
+    print("🚀 Custom Trainer를 통한 완전한 하이브리드 학습 시작")
 
-    # 1. 기성품 YOLOv26 모델 로드 (구조 파악용)
-    # yolo26s-obb.pt 파일이 현재 폴더에 반드시 있어야 합니다.
-    model = YOLO('/home/kim/research/hybrid/yolo26s-obb.pt') 
-
-    # 2. 커스텀 하이브리드 백본 객체 생성
-    hybrid_backbone = SkySense_Backbone_with_Lateral()
-
-    # 3. [핵심] 백본 강제 교체 (Surgery)
-    # Ultralytics 내부의 순정 백본을 뽑아내고 거인족 백본으로 치환합니다.
-    model.model.backbone = hybrid_backbone
-    
-    print("🚀 [수술실] 순정 백본 제거 및 1x1 Conv + SkySense HR 이식 완료.")
-
-    # 4. 학습 실행
-    # RTX 5070 12GB 환경을 고려한 극한의 생존 세팅입니다.
-    model.train(
-        data='/home/kim/research/hybrid/datasets/DOTAv1_Tiled_1024/data.yaml',
+    # 2. 파라미터는 원래대로 '문자열' 경로로 돌려놓습니다.
+    train_args = dict(
+        model=r"C:/hybrid/yolo26s-obb.pt",  # 경로로 원복 (TypeError 해결)
+        data=r"C:/hybrid/datasets/DOTAv1_Tiled_1024/data.yaml",
         epochs=300,
-        imgsz=640,       # VRAM 생존을 위한 640 고정
-        batch=1,         # Batch 1 고정 (절대 올리지 마십시오)
-        amp=True,        # FP16 혼합 정밀도 (메모리 절약 및 속도 향상)
+        imgsz=640,
+        batch=1,
+        amp=True,
         project='SkySense_YOLO26',
-        name='Hybrid_HR_640',
+        name='Hybrid_Final_Evolution',
         device=0,
-        workers=4,
+        workers=2,
         optimizer='AdamW',
-        lr0=0.0001       # 사전 학습된 무거운 백본이 망가지지 않도록 낮은 학습률 사용
+        lr0=0.0001,
+        close_mosaic=10,
+        deterministic=True
     )
 
+    # 3. 기본 트레이너가 아닌, 우리가 만든 HybridTrainer를 사용합니다.
+    trainer = HybridTrainer(overrides=train_args)
+    trainer.train()
+
 if __name__ == "__main__":
-    try:
-        train_surgery()
-    except RuntimeError as e:
-        if "out of memory" in str(e).lower():
-            print("\n❌ [치명적 에러] VRAM 부족(OOM) 발생!")
-            print("해결책: imgsz를 512로 더 낮추거나, Batch 사이즈가 1인지 확인하십시오.")
-        else:
-            print(f"\n❌ [실행 에러] {e}")
+    train_surgery()
